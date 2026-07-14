@@ -22,7 +22,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install flet openpyxl
+          pip install --upgrade pip
+          pip install flet==0.23.0 openpyxl
+
+      - name: Check Flet version
+        run: |
+          flet --version
 
       - name: Convert Excel to JSON
         run: |
@@ -75,7 +80,7 @@ jobs:
 
       - name: Build APK
         run: |
-          flet build apk
+          flet build apk --verbose
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
