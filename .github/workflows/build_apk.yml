@@ -1,46 +1,25 @@
-name: Build Flet APK
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install flet openpyxl
-
       - name: Convert Excel to JSON
         run: |
           python - <<'EOF'
           import openpyxl
           import json
           import os
+          
+          # assets folder မရှိရင် ဆောက်ခိုင်းခြင်း
+          os.makedirs('assets', exist_ok=True)
+          
           file_path = 'Barmill Offer.xlsx'
           if not os.path.exists(file_path):
               print('ERROR: Excel file not found')
               exit(1)
+              
           wb = openpyxl.load_workbook(file_path, data_only=True)
           sheet = wb.active
           headers = []
           for col in range(1, sheet.max_column + 1):
               val = sheet.cell(row=1, column=col).value
               headers.append(str(val).strip() if val else f'Col{col}')
+          
           offers = []
           for row in range(2, sheet.max_row + 1):
               row_data = {}
@@ -54,17 +33,9 @@ jobs:
                       row_data[header] = ''
               if not empty:
                   offers.append(row_data)
-          with open('data.json', 'w', encoding='utf-8') as f:
+                  
+          # ဖိုင်ကို assets folder ထဲ တိုက်ရိုက်သိမ်းခြင်း
+          with open('assets/data.json', 'w', encoding='utf-8') as f:
               json.dump(offers, f, ensure_ascii=False, indent=2)
-          print(f'Converted {len(offers)} items')
+          print(f'✅ Converted {len(offers)} items to assets/data.json')
           EOF
-
-      - name: Build APK
-        run: |
-          yes | flet build apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Barmill-Offer-App
-          path: build/apk/*.apk
