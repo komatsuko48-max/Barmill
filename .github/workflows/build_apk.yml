@@ -19,15 +19,12 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          flutter-version: '3.22.0'
 
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install flet==0.23.0 openpyxl
-
-      - name: Check Flet version
-        run: |
-          flet --version
+          pip install flet openpyxl
 
       - name: Convert Excel to JSON
         run: |
@@ -80,7 +77,7 @@ jobs:
 
       - name: Build APK
         run: |
-          flet build apk --verbose
+          flet build apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
