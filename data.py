@@ -4,7 +4,7 @@ import os
 def load_offers():
     try:
         if not os.path.exists("data.json"):
-            print("data.json file not found")  # log အတွက်
+            print("data.json file not found")
             return []
         with open("data.json", "r", encoding="utf-8") as f:
             data = json.load(f)
