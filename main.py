@@ -1,96 +1,78 @@
 import flet as ft
-import data
-import traceback
+import json
+import os
+import sys
 
 def main(page: ft.Page):
     page.title = "Barmill Offer"
-    page.scroll = ft.ScrollMode.ADAPTIVE
     page.padding = 20
-    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    
+    # ListView သုံးခြင်းဖြင့် Error တက်ရင်လည်း မျက်နှာပြင်ပေါ် စာသား ပေါ်လာမည်
+    list_view = ft.ListView(expand=True, spacing=10)
+    page.add(list_view)
+    
+    # --- [အရေးကြီးဆုံးအပိုင်း] APK ထဲတွင် Assets လမ်းကြောင်း မှန်ကန်စွာ ရှာဖွေခြင်း ---
+    # local run ရင် လက်ရှိ ပတ်လမ်းကြောင်း၊ APK ဆောက်ရင် ၎င်း App ရဲ့ internal path ကို ယူမည်
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    json_path = os.path.join(base_path, "assets", "data.json")
+    
+    # ဒုတိယနည်းလမ်းဖြင့် ထပ်မံစစ်ဆေးခြင်း
+    if not os.path.exists(json_path):
+        json_path = os.path.join("assets", "data.json")
 
+    # အကယ်၍ မတွေ့သေးပါက
+    if not os.path.exists(json_path):
+        list_view.controls.append(
+            ft.Text(f"❌ ရှာမတွေ့ပါ! လမ်းကြောင်း: {os.path.abspath(json_path)}", size=16, color=ft.colors.RED)
+        )
+        page.update()
+        return
+    
+    # 2. JSON ဖိုင်ကိုဖတ်မယ်
     try:
-        # data.offers ကို စစ်မယ်
-        if not data.offers:
-            page.add(
-                ft.Container(
-                    content=ft.Text(
-                        "⚠️ ဒေတာမရှိပါ။\n\ndata.json ဖိုင် မပါဝင်နိုင်ပါ။",
-                        size=18,
-                        color=ft.colors.RED_700,
-                        text_align=ft.TextAlign.CENTER,
-                    ),
-                    padding=30,
-                    bgcolor=ft.colors.RED_50,
-                    border_radius=10,
-                )
-            )
-            return
-
-        # ဇယားခေါင်းစဉ်များ
-        columns = [
-            ft.DataColumn(ft.Text("No.", weight="bold")),
-            ft.DataColumn(ft.Text("Item", weight="bold")),
-            ft.DataColumn(ft.Text("Code", weight="bold")),
-            ft.DataColumn(ft.Text("Drawing", weight="bold")),
-            ft.DataColumn(ft.Text("Price (USD)", weight="bold")),
-        ]
-
-        rows = []
-        for idx, item in enumerate(data.offers[:200]):
-            try:
-                rows.append(
-                    ft.DataRow(
-                        cells=[
-                            ft.DataCell(ft.Text(str(item.get("No.", "")))),
-                            ft.DataCell(ft.Text(str(item.get("Item", "")))),
-                            ft.DataCell(ft.Text(str(item.get("Code", "")))),
-                            ft.DataCell(ft.Text(str(item.get("96/3805 Drawing no.", "")), max_lines=2)),
-                            ft.DataCell(ft.Text(str(item.get("Unit Price (USD)", "")))),
-                        ]
-                    )
-                )
-            except Exception as row_error:
-                print(f"Row {idx} error: {row_error}")
-
-        table = ft.DataTable(
-            columns=columns,
-            rows=rows,
-            border=ft.border.all(1, ft.colors.GREY_400),
-            border_radius=10,
-            vertical_lines=ft.border.BorderSide(1, ft.colors.GREY_300),
-            horizontal_lines=ft.border.BorderSide(1, ft.colors.GREY_300),
-            heading_row_color=ft.colors.BLUE_100,
-            heading_row_height=40,
-            data_row_max_height=60,
-        )
-
-        page.add(
-            ft.Text("🛠️ Barmill Offer - Spare Parts", size=28, weight="bold"),
-            ft.Divider(height=10, thickness=2),
-            ft.Container(
-                content=table,
-                padding=10,
-                bgcolor=ft.colors.WHITE,
-                border_radius=10,
-                shadow=ft.BoxShadow(blur_radius=10, color=ft.colors.GREY_300),
-            ),
-            ft.Text(f"စုစုပေါင်း {len(data.offers)} ခု", size=14, color=ft.colors.GREY_600),
-        )
-
+        with open(json_path, "r", encoding="utf-8") as f:
+            offers = json.load(f)
     except Exception as e:
-        # ဘယ်လို error မဆို blank မဖြစ်အောင်
-        error_text = traceback.format_exc()
-        page.add(
-            ft.Container(
-                content=ft.Column([
-                    ft.Text("❌ Application Error", size=24, color=ft.colors.RED_700),
-                    ft.Text("ကျေးဇူးပြုပြီး အမှားအကြောင်းကို အောက်ပါအတိုင်း Developer ကို ပြန်ပြောပါ။", size=16),
-                    ft.Text(error_text, size=12, color=ft.colors.RED_500, selectable=True),
-                ]),
-                padding=20,
-                bgcolor=ft.colors.RED_50,
-                border_radius=10,
+        list_view.controls.append(
+            ft.Text(f"❌ ဒေတာဖတ်ရန် Error တက်နေသည်: {e}", size=16, color=ft.colors.RED)
+        )
+        page.update()
+        return
+    
+    # 3. ဒေတာမရှိရင်
+    if not offers:
+        list_view.controls.append(
+            ft.Text("⚠️ data.json ထဲတွင် မည်သည့်ဒေတာမှ မရှိပါ", size=18, color=ft.colors.ORANGE)
+        )
+        page.update()
+        return
+    
+    # 4. ဒေတာပြမယ်
+    list_view.controls.append(
+        ft.Text(f"✅ ဒေတာ အောင်မြင်စွာ ဖတ်ပြီးပါပြီ ({len(offers)} items)", size=18, color=ft.colors.GREEN)
+    )
+    list_view.controls.append(ft.Divider(height=10))
+    
+    # ပထမဆုံး 5 ခုကိုပြမယ် (စမ်းသပ်ရန်)
+    for item in offers[:5]:
+        list_view.controls.append(
+            ft.Card(
+                content=ft.Container(
+                    content=ft.Column([
+                        ft.Text(f"No: {item.get('No.', '')}", weight="bold"),
+                        ft.Text(f"Item: {item.get('Item', '')}"),
+                        ft.Text(f"Code: {item.get('Code', '')}"),
+                        ft.Text(f"Price: {item.get('Unit Price (USD)', '')}"),
+                    ]),
+                    padding=15,
+                ),
+                elevation=3,
+                margin=5,
             )
         )
+    
+    list_view.controls.append(ft.Text(f"Total: {len(offers)} items", size=14, color=ft.colors.GREY))
+    page.update()
 
-ft.app(target=main)
+# assets_dir ဖော်ပြပေးရန် အထူးလိုအပ်သည်
+ft.app(target=main, assets_dir="assets")
