@@ -1,0 +1,85 @@
+name: Build Flet APK
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: |
+          pip install flet openpyxl
+
+      - name: Convert Excel to JSON
+        run: |
+          python -c "
+import openpyxl
+import json
+import os
+
+file_path = 'Barmill Offer.xlsx'
+
+if not os.path.exists(file_path):
+    print('❌ ERROR: Barmill Offer.xlsx not found!')
+    exit(1)
+
+wb = openpyxl.load_workbook(file_path, data_only=True)
+sheet = wb.active
+
+headers = []
+for col in range(1, sheet.max_column + 1):
+    val = sheet.cell(row=1, column=col).value
+    headers.append(str(val).strip() if val else f'Col{col}')
+
+offers = []
+for row in range(2, sheet.max_row + 1):
+    row_data = {}
+    empty = True
+    for col_idx, header in enumerate(headers, start=1):
+        cell_value = sheet.cell(row=row, column=col_idx).value
+        if cell_value is not None and str(cell_value).strip() != '':
+            row_data[header] = str(cell_value).strip()
+            empty = False
+        else:
+            row_data[header] = ''
+    if not empty:
+        offers.append(row_data)
+
+with open('data.json', 'w', encoding='utf-8') as f:
+    json.dump(offers, f, ensure_ascii=False, indent=2)
+
+print(f'✅ Converted {len(offers)} items to data.json')
+"
+
+      - name: Verify data.json
+        run: |
+          if [ -f "data.json" ]; then
+            echo "✅ data.json created"
+          else
+            echo "❌ data.json missing"
+            exit 1
+          fi
+
+      - name: Build APK
+        run: |
+          flet build apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Barmill-Offer-App
+          path: "build/apk/*.apk"
