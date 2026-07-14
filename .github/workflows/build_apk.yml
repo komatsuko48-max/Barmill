@@ -1,3 +1,6 @@
+    steps:
+      # ... အပေါ်က အဆင့်များ (Checkout, Setup Python စသည်) ရှိနေမည် ...
+
       - name: Convert Excel to JSON
         run: |
           python - <<'EOF'
